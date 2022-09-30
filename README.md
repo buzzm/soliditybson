@@ -109,7 +109,7 @@ The value of this is readily apparent in the following example:
         bytes memory solidity_string = BsonUtils.getString(name); 
 
         BsonUtils.BsonValue memory hireDate = BsonUtils.getBsonMapValue(dd, "hireDate");
-        (uint16 m, uint16 d, uint16 y) BsonUtils.getDatetimeMDF(hireDate);
+        (uint16 m, uint16 d, uint16 y) = BsonUtils.getDatetimeMDY(hireDate);
 	
         BsonUtils.BsonValue memory balance = BsonUtils.getBsonMapValue(dd, "balance");
         (int128 shifted_value, int8 shifts) = BsonUtils.getDecimal128(balance);
