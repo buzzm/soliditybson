@@ -10,7 +10,7 @@ major issues which make "real world" sending and receiving of non-trivial data
 difficult.  These issues are mirrored in the popular web3 code generator
 framework:
 
- *  There is no concept of a C/C++-style struct that can be defined and shared
+ *  There is no concept of a C/C++ struct that can be defined and shared
     *between the smart contract and a client program*.  You can define structs in
     the contract only.  This means that contract function signatures are limited
     to lists of scalars going in and n-sized `Tuple` objects coming out:
@@ -45,7 +45,8 @@ framework:
     critical types to have in modern non-trivial data structures (esp. where
     monies are involved) and combined with the inability to share structs, the
     fidelity of data moving in and out of the contracts is severely reduced.
-
+ *  Solidity arrays have no append(), making construction of rich array data tedious.
+ 
 
 ## Enter BSON
 
@@ -54,16 +55,17 @@ BSON is a data SDK.  It "feels" like JSON
 two vitally important ways:
 
   *  BSON has a larger and important data type suite:
-     *  32 and 64 bit integers, double float, and decimal128
-        numbers whereas JSON only has "number".
+     *  32 and 64 bit integers, doubles, and decimal128
+        numbers are all discrete types whereas JSON only has "number"
      *  Native datetime so it avoids issues with ISO8601 strings and
         other perils of dealing with dates as strings or, for example,
-        integer milliseconds since the epoch
+        integer milliseconds since the epoch in a plain integer field
      *  Native byte[] so it avoids string encoding issues
-  *  BSON has a byte stream specification with codecs in at least 13
+  *  BSON has a bytestream specification [(here is the official site)](https://bsonspec.org)
+     with codecs in at least 20 
      languages.  For example, the Java codec is rich with classes and methods
      which can be used to create arbitrarily complex structures, upon which the
-     "toBytes()" method can be called to create a byte stream which can be
+     "toBytes()" method can be called to create a bytestream which can be
      sent to a python program with the python BSON codec that can call
      "fromBytes()" to yield dicts, native `datetime.datetime` objects, etc.
      There is no "parsing" in BSON; it is encode/decode.  As a result, it does
@@ -87,16 +89,30 @@ The value of this is readily apparent in the following example:
     d.setString("name", "buzz");
     d.setInteger("age", -1);
     d.setDateTime("hireDate", new Date(2022,4,4));
+    d.setDecimal128("balance", new BigDecimal("107.78")); // string rep protects from floating point issues
     
+    // This is the Java BsonUtils, not the BSON Solidity library here!
     byte[] p2 = BsonUtils.toBytes(d, Document.class);
     	    
     TransactionReceipt r1 = ct2.setData(p2);
     ...
+
     // On the Solidity side:
     function setData(bytes memory bsonbytes) public {
+        // Decode bytestream into useable material:
         BsonUtils.BsonDocument memory dd = BsonUtils.fromBytes(bsonbytes);
+
+        // The type-generic functions yield BsonValue types that are polymorphic:
         BsonUtils.BsonValue memory name = BsonUtils.getBsonMapValue(dd, "name");
-        BsonUtils.BsonValue memory hireDate = BsonUtils.getBsonMapValue(dd, "hireDate");    
+        // ... and there are additional functions that extract Solidity-friedly types
+        // from the BsonValue type:
+        bytes memory solidity_string = BsonUtils.getString(name); 
+
+        BsonUtils.BsonValue memory hireDate = BsonUtils.getBsonMapValue(dd, "hireDate");
+        (uint16 m, uint16 d, uint16 y) BsonUtils.getDatetimeMDF(hireDate);
+	
+        BsonUtils.BsonValue memory balance = BsonUtils.getBsonMapValue(dd, "balance");
+        (int128 shifted_value, int8 shifts) = BsonUtils.getDecimal128(balance);
         ...
 ```
 
