@@ -1,1 +1,0 @@
-/Users/buzz/projects/qaas/web3/src/main/sol/contracts/MyContract.sol
