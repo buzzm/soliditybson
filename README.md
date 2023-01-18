@@ -78,7 +78,7 @@ in the world and growing, it stands to reason that BSON will be around as long
 as MongoDB is around which at this time seems to be some time.  It is important
 to note that the BSON spec and codecs are code-independent of MongoDB i.e. the
 C driver `libbson.1.so` has no references to the database product at all.  It
-is also worth noting that the Java, C, and python codecs have *zero depedencies*.
+is also worth noting that the Java, C, and python codecs have *zero dependencies*.
 
 
 ## BSON in Solidity
@@ -360,10 +360,11 @@ objects is relatively expensive.
   prints the new contract address.
   *  bsonfetch.java.  Contains examples of non-state changing function calls
   to `MyContract`.
-  *  bsonupdate.java.  A few examples of state changing function calls.
+  *  bsonupdate.java.  Sets saved state.
   *  bsonlisten.java.  An example of an event listener that will wake up and
   decode a BSON payload in an emitted event.
-
+  *  bsonemit.java.   The program that will trigger an event.
+  
 Building and running these examples is beyond the scope of what can be done here
 due the wide variety of both web3j development environments and the set up of the
 ethereum node to which the contract is deployed and engaged.  The author used
