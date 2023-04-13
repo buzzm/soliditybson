@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2022 Paul "Buzz" Moschetti
+Copyright (C) 2022-2023 Paul "Buzz" Moschetti
     
 Permission is hereby granted, free of charge, to any person or organization
 obtaining a copy of the software and accompanying documentation covered by
@@ -402,7 +402,7 @@ library BsonUtils {
 	uint256 startgas = gasleft();
 
 	bytes memory payload = BsonUtils.toBytes(doc);
-	bytes32 dgst = sha256(payload);
+	bytes32 dgst = keccak256(payload);  // change from sha256
 
 	BsonMap[] memory aa;
 	if(version > 0) {
@@ -412,7 +412,7 @@ library BsonUtils {
 	    aa = new BsonMap[](4);
 	}
 	aa[0] = BsonMap('payload', createBsonBinary(payload));
-	aa[1] = BsonMap('sha256', createBsonBinary(dgst));
+	aa[1] = BsonMap('keccak256', createBsonBinary(dgst));
 
 	aa[2] = BsonMap('blockNum', createBsonInt64(int64(int256(block.number))));
 	aa[3] = BsonMap('blockTimestamp', createBsonInt64(int64(int256(block.timestamp))));
@@ -423,14 +423,14 @@ library BsonUtils {
 	// loop and those are expensive.
 	// We should come up with a special optimization that makes a bigger buf
 	//   uint32 len = BsonUtils.sizeDocument(doc);
-	//   len += sizeof(SHA256) + stuff
+	//   len += sizeof(keccak) + stuff
 	//   [---------------------------------------]
 	//
         // then sets up the wrapper map:
-	//   [payload:-------sha256:--------version:1]
+	//   [payload:-------keccak:--------version:1]
 	//
-        // and then sets the payload and SHA byte[] "into" that buf, e.g.:
-	//   [payload:BBBBBB-sha256:BBBBBB--version:1]
+        // and then sets the payload and digest byte[] "into" that buf, e.g.:
+	//   [payload:BBBBBB-keccak:BBBBBB--version:1]
 	bytes memory complete = BsonUtils.toBytes(wrapper);
 
 	uint256 gasused = startgas - gasleft();
@@ -950,27 +950,45 @@ library BsonUtils {
     }
 
 
+    function uintToString(uint value) internal pure returns (bytes memory) {
+        if (value == 0) { return "0"; }
+        if (value == 1) { return "1"; }
+        if (value == 2) { return "2"; }
+        if (value == 10) { return "10"; }			
 
-    function uintToString(uint _i) public pure returns (bytes memory) {
-        uint number = _i;
-        if (number == 0) { return "0"; }
-        if (number == 1) { return "1"; }
-
-        uint j = number;
-        uint len;
-        while (j != 0) {
-            len++;
-            j /= 10;
+        uint temp = value;
+        uint digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
         }
-        bytes memory bstr = new bytes(len);
+
+	bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + (value % 10)));
+            value /= 10;
+        }
+
+        return buffer;
+    }
+    
+    /*
+      This implementation is BROKEN!
+      
+      function uintToString(uint _i) public pure returns (bytes memory) {
+        ... same as above ...
+	bytes memory bstr = new bytes(len);
         uint k = len - 1;
         while (number != 0) {
-            bstr[k--] = bytes1(uint8(48 + number % 10));
+	    // The following line faults the EVM!
+	    bstr[k--] = bytes1(uint8(48 + (number % 10)));
             number /= 10;
         }
+	
         return bstr;
     }
-
+    */
 
     function writeString(bytes memory buf, uint32 idx, bytes memory x) private pure returns (uint32) {
         uint32 len = uint32(x.length); // ah HA!

@@ -54,6 +54,8 @@ contract MyContract {
 
     event Modified(bytes myInfo);
 
+    event Wrapped(bytes myInfo);    
+
 
     /*
      * This is The Official Creator of Externalized State for state "FOO".
@@ -97,7 +99,7 @@ contract MyContract {
 
 	aa[0] = BsonUtils.BsonMap('cparty', BsonUtils.createBsonString(loan.cparty));
 	aa[1] = BsonUtils.BsonMap('amt', BsonUtils.createBsonInt32(int32(loan.amount)));
-	BsonUtils.BsonValue[] memory faves = new BsonUtils.BsonValue[](5);
+	BsonUtils.BsonValue[] memory faves = new BsonUtils.BsonValue[](4);
 	faves[0] = BsonUtils.createBsonInt32(3);
 	faves[1] = BsonUtils.createBsonString("FOO");
 	faves[2] = BsonUtils.createBsonInt64(-323423424343211); // negative!
@@ -200,9 +202,10 @@ contract MyContract {
 	//  Call The Official Function of externalized state for state FOO:
 	BsonUtils.BsonDocument memory doc = makeStateFOODocument(4);
 	return BsonUtils.toBytes(doc);
+	
     }
 
-
+	
     // Things that generate state change cannot return data.  They only return
     // a TransactionReceipt object.  Only view or pure functions will be
     // wrapped with nice type specific return values.
@@ -226,6 +229,10 @@ contract MyContract {
     function getLoanInfo() public view returns (bytes memory, uint amount) {
         return (loan.cparty, loan.amount);
     }
+
+    function computeLoanInfo(uint32 x) public view returns (bytes memory, uint amount) {
+        return (loan.cparty, x * loan.amount);
+    }    
 
 
     function fun1(bytes memory bsonbytes) public pure returns (bytes memory) {
@@ -271,7 +278,16 @@ contract MyContract {
 
     function setState(bytes memory bsonbytes) public {
 	state1 = bsonbytes;
+
+	BsonUtils.BsonDocument memory dd = BsonUtils.fromBytes(bsonbytes);	
+
+	// (bytes memory cwrap, uint256 gas_used) = BsonUtils.wrapForTransmit(dd);
+	(bytes memory cwrap, ) = BsonUtils.wrapForTransmit(dd);
+
+	emit Wrapped(cwrap);
     }
+
+    
     function getState() public view returns (bytes memory) {
 	return state1;
     }
